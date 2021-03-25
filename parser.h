@@ -31,5 +31,7 @@ class Parser {
     void parse_defualt_case();
     void parse_inputs();
     void parse_num_list();
+    void syntax_error();
+    Token expect(TokenType expected_type);
 };
 #endif
