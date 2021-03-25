@@ -15,8 +15,8 @@ class Parser {
     void parse_stmt();
     void parse_assign_stmt();
     void parse_expr();
-    void parse_primary();
-    void parse_op();
+    Token parse_primary();
+    int parse_op();
     void parse_output_stmt();
     void parse_input_stmt();
     void parse_while_stmt();
