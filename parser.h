@@ -5,10 +5,9 @@
 
 class Parser {
    public:
-    struct InstructionNode* parse_generate_intermediate_representation();
+    void parse_program();
    private:
     LexicalAnalyzer lexer;
-    void parse_program();
     void parse_var_section();
     void parse_id_list();
     void parse_body();

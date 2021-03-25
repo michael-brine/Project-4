@@ -2,20 +2,25 @@
 
 #include <iostream>
 
-struct InstructionNode* Parser::parse_generate_intermediate_representation() {
-    parse_program();
+struct InstructionNode* parse_generate_intermediate_representation() {
+    Parser parser;
+    parser.parse_program();
 }
 void Parser::parse_program() {
+    std::cout << "PROGRAM" << std::endl;
     parse_var_section();
     parse_body();
     parse_inputs();
     expect(END_OF_FILE);
+    std::cout << "DONE" << std::endl;
 }
 void Parser::parse_var_section() {
+    std::cout << "VAR SECTION" << std::endl;
     parse_id_list();
-    expect(ID);
+    expect(SEMICOLON);
 }
 void Parser::parse_id_list() {
+    std::cout << "ID LIST" << std::endl;
     expect(ID);
     if (lexer.peek(1).token_type == COMMA) {
         expect(COMMA);
@@ -23,17 +28,20 @@ void Parser::parse_id_list() {
     }
 }
 void Parser::parse_body() {
+    std::cout << "BODY" << std::endl;
     expect(LBRACE);
     parse_stmt_list();
     expect(RBRACE);
 }
 void Parser::parse_stmt_list() {
+    std::cout << "STMT LIST" << std::endl;
     parse_stmt();
     if (lexer.peek(1).token_type != RBRACE) {
         parse_stmt_list();
     }
 }
 void Parser::parse_stmt() {
+    std::cout << "STMT" << std::endl;
     switch (lexer.peek(1).token_type) {
         case ID:
             parse_assign_stmt();
@@ -62,6 +70,7 @@ void Parser::parse_stmt() {
     }
 }
 void Parser::parse_assign_stmt() {
+    std::cout << "ASSIGN" << std::endl;
     expect(ID);
     expect(EQUAL);
     if (lexer.peek(2).token_type != SEMICOLON) {
@@ -72,11 +81,13 @@ void Parser::parse_assign_stmt() {
     expect(SEMICOLON);
 }
 void Parser::parse_expr() {
+    std::cout << "EXPR" << std::endl;
     parse_primary();
     parse_op();
     parse_primary();
 }
 void Parser::parse_primary() {
+    std::cout << "PRIMARY" << std::endl;
     switch (lexer.peek(1).token_type) {
         case ID:
             lexer.GetToken();
@@ -89,6 +100,7 @@ void Parser::parse_primary() {
     }
 }
 void Parser::parse_op() {
+    std::cout << "OP" << std::endl;
     switch (lexer.peek(1).token_type) {
         case PLUS:
             lexer.GetToken();
@@ -107,31 +119,37 @@ void Parser::parse_op() {
     }
 }
 void Parser::parse_output_stmt() {
+    std::cout << "OUTPUT" << std::endl;
     expect(OUTPUT);
     expect(ID);
     expect(SEMICOLON);
 }
 void Parser::parse_input_stmt() {
+    std::cout << "INPUT" << std::endl;
     expect(INPUT);
     expect(ID);
     expect(SEMICOLON);
 }
 void Parser::parse_while_stmt() {
+    std::cout << "WHILE" << std::endl;
     expect(WHILE);
     parse_condidtion();
     parse_body();
 }
 void Parser::parse_if_stmt() {
+    std::cout << "IF" << std::endl;
     expect(IF);
     parse_condidtion();
     parse_body();
 }
 void Parser::parse_condidtion() {
+    std::cout << "CONDITION" << std::endl;
     parse_primary();
     parse_relop();
     parse_primary();
 }
 void Parser::parse_relop() {
+    std::cout << "RELOP" << std::endl;
     switch(lexer.peek(1).token_type) {
         case GREATER:
             lexer.GetToken();
@@ -147,6 +165,7 @@ void Parser::parse_relop() {
     }
 }
 void Parser::parse_switch_stmt() {
+    std::cout << "SWITCH" << std::endl;
     expect(SWITCH);
     expect(ID);
     expect(LBRACE);
@@ -157,6 +176,7 @@ void Parser::parse_switch_stmt() {
     expect(RBRACE);
 }
 void Parser::parse_for_stmt() {
+    std::cout << "FOR" << std::endl;
     expect(FOR);
     expect(LPAREN);
     parse_assign_stmt();
@@ -167,26 +187,31 @@ void Parser::parse_for_stmt() {
     parse_body();
 }
 void Parser::parse_case_list() {
+    std::cout << "CASE LIST" << std::endl;
     parse_case();
     if(lexer.peek(1).token_type == CASE) {
         parse_case_list();
     }
 }
 void Parser::parse_case() {
+    std::cout << "CASE" << std::endl;
     expect(CASE);
     expect(NUM);
     expect(COLON);
     parse_body();
 }
 void Parser::parse_defualt_case() {
+    std::cout << "DEFUALT" << std::endl;
     expect(DEFAULT);
     expect(COLON);
     parse_body();
 }
 void Parser::parse_inputs() {
+    std::cout << "INPUTS" << std::endl;
     parse_num_list();
 }
 void Parser::parse_num_list() {
+    std::cout << "NUM LIST" << std::endl;
     expect(NUM);
     if(lexer.peek(1).token_type == NUM) {
         parse_num_list();
