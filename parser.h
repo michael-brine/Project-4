@@ -4,12 +4,12 @@
 #include "lexer.h"
 
 struct insrct_list_node {
-    int num;
-    int target;
+    int num, target, goto_flag;
     std::string debug;
     struct InstructionNode* node;
-    insrct_list_node(int n, std::string d, InstructionNode* in_node) {
+    insrct_list_node(int n, int g, std::string d, InstructionNode* in_node) {
         num = n;
+        goto_flag = g;
         debug = d;
         node = in_node;
         target = -1;

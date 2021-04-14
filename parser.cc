@@ -26,12 +26,14 @@ struct InstructionNode* parse_generate_intermediate_representation() {
     parser.parse_program();
     std::vector<insrct_list_node*> cjmps;
     //add NOOP
-    test_list.push_back(new insrct_list_node(test_list.size(), "NOOP", new InstructionNode));
+    test_list.push_back(new insrct_list_node(test_list.size(), 0, "NOOP", new InstructionNode));
     test_list.at(test_list.size() - 1)->node->type = NOOP;
     test_list.at(test_list.size() - 1)->node->next = NULL;
 
     for (int i = 0; i < test_list.size() - 1; i++) {
-        test_list.at(i)->node->next = test_list.at(i + 1)->node;
+        if(test_list.at(i)->goto_flag == 0) {
+            test_list.at(i)->node->next = test_list.at(i + 1)->node;
+        }
         if (test_list.at(i)->node->type == CJMP) {
             test_list.at(i)->node->cjmp_inst.target = test_list.at(test_list.at(i)->target)->node;
         }
@@ -136,7 +138,7 @@ void Parser::parse_assign_stmt() {
             debug += temp;
     }
     expect(SEMICOLON);
-    test_list.push_back(new insrct_list_node(list_count++, debug, n));
+    test_list.push_back(new insrct_list_node(list_count++, 0, debug, n));
 }
 void Parser::parse_output_stmt() {
     InstructionNode* n = new InstructionNode;
@@ -147,7 +149,7 @@ void Parser::parse_output_stmt() {
     n->input_inst.var_index = var_index[temp];
     expect(SEMICOLON);
     debug += " " + temp;
-    test_list.push_back(new insrct_list_node(list_count++, debug, n));
+    test_list.push_back(new insrct_list_node(list_count++, 0, debug, n));
 }
 void Parser::parse_input_stmt() {
     InstructionNode* n = new InstructionNode;
@@ -158,7 +160,7 @@ void Parser::parse_input_stmt() {
     n->input_inst.var_index = var_index[temp];
     expect(SEMICOLON);
     debug += " " + temp;
-    test_list.push_back(new insrct_list_node(list_count++, debug, n));
+    test_list.push_back(new insrct_list_node(list_count++, 0, debug, n));
 }
 void Parser::parse_expr() {
     // std::cout << "EXPR" << std::endl;
@@ -203,16 +205,11 @@ int Parser::parse_op() {
     return -1;
 }
 void Parser::parse_while_stmt() {
-    // std::cout << "WHILE" << std::endl;
-    expect(WHILE);
-    parse_condidtion();
-    parse_body();
-}
-void Parser::parse_if_stmt() {
     InstructionNode* n = new InstructionNode;
     std::string debug, temp;
     n->type = CJMP;
-    debug += expect(IF).lexeme + " ";
+    debug += expect(WHILE).lexeme + " ";
+    //parse_condidtion();
     temp = parse_primary().lexeme;
     n->cjmp_inst.operand1_index = var_index[temp];
     debug += temp;
@@ -232,7 +229,40 @@ void Parser::parse_if_stmt() {
     temp = parse_primary().lexeme;
     n->cjmp_inst.operand2_index = var_index[temp];
     debug += temp;
-    test_list.push_back(new insrct_list_node(list_count++, debug, n));
+    test_list.push_back(new insrct_list_node(list_count++, 0, debug, n));
+    t = test_list.size() - 1;
+    parse_body();
+    test_list.at(test_list.size() - 1)->goto_flag = 1;
+    test_list.at(test_list.size() - 1)->debug += " -> " + test_list.at(t)->debug + " {GOTO}";
+    test_list.at(test_list.size() - 1)->node->next = test_list.at(t)->node;
+    test_list.at(t)->target = list_count;
+}
+void Parser::parse_if_stmt() {
+    InstructionNode* n = new InstructionNode;
+    std::string debug, temp;
+    n->type = CJMP;
+    debug += expect(IF).lexeme + " ";
+    //parse_condidtion();
+    temp = parse_primary().lexeme;
+    n->cjmp_inst.operand1_index = var_index[temp];
+    debug += temp;
+    int t = parse_relop();
+    switch (t) {
+        case 345:
+            debug += " > ";
+            break;
+        case 346:
+            debug += " < ";
+            break;
+        case 347:
+            debug += " != ";
+            break;
+    }
+    n->cjmp_inst.condition_op = (ConditionalOperatorType)t;
+    temp = parse_primary().lexeme;
+    n->cjmp_inst.operand2_index = var_index[temp];
+    debug += temp;
+    test_list.push_back(new insrct_list_node(list_count++, 0, debug, n));
     t = test_list.size() - 1;
     parse_body();
     test_list.at(t)->target = list_count;
@@ -290,7 +320,6 @@ void Parser::parse_case_list() {
     }
 }
 void Parser::parse_case() {
-    // std::cout << "CASE" << std::endl;
     expect(CASE);
     expect(NUM);
     expect(COLON);
