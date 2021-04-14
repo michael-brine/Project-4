@@ -3,10 +3,24 @@
 #include "compiler.h"
 #include "lexer.h"
 
+struct insrct_list_node {
+    int num;
+    int target;
+    std::string debug;
+    struct InstructionNode* node;
+    insrct_list_node(int n, std::string d, InstructionNode* in_node) {
+        num = n;
+        debug = d;
+        node = in_node;
+        target = -1;
+    }
+};
 class Parser {
    public:
     void parse_program();
+    void debug();
    private:
+
     LexicalAnalyzer lexer;
     void parse_var_section();
     void parse_id_list();
@@ -22,7 +36,7 @@ class Parser {
     void parse_while_stmt();
     void parse_if_stmt();
     void parse_condidtion();
-    void parse_relop();
+    int parse_relop();
     void parse_switch_stmt();
     void parse_for_stmt();
     void parse_case_list();

@@ -29,59 +29,45 @@ enum ConditionalOperatorType {
     CONDITION_NOTEQUAL
 };
 
-enum InstructionType
-{
-    NOOP = 1000,
-    IN,
-    OUT,
-    ASSIGN,
-    CJMP,
-    JMP
-};
+enum InstructionType { NOOP = 1000, IN, OUT, ASSIGN, CJMP, JMP };
 
-struct InstructionNode
-{
+struct InstructionNode {
     InstructionType type;
-
-    union
-    {
-        struct
-        {
+    //int num;
+    union {
+        struct {
             int left_hand_side_index;
             int operand1_index;
             int operand2_index;
-            
+
             /*
              * If op == OPERATOR_NONE then only operand1 is meaningful.
              * Otherwise both operands are meaningful
              */
             ArithmeticOperatorType op;
         } assign_inst;
-        
-        struct
-        {
+
+        struct {
             int var_index;
         } input_inst;
-        
-        struct
-        {
+
+        struct {
             int var_index;
         } output_inst;
-        
+
         struct {
             ConditionalOperatorType condition_op;
             int operand1_index;
             int operand2_index;
-            struct InstructionNode * target;
+            struct InstructionNode* target;
         } cjmp_inst;
-        
+
         struct {
-            struct InstructionNode * target;
+            struct InstructionNode* target;
         } jmp_inst;
-  
     };
 
-    struct InstructionNode * next; // next statement in the list or NULL
+    struct InstructionNode* next;  // next statement in the list or NULL
 };
 
 void debug(const char* format, ...);
@@ -89,7 +75,7 @@ void debug(const char* format, ...);
 //---------------------------------------------------------
 // You should write the following function:
 
-struct InstructionNode * parse_generate_intermediate_representation();
+struct InstructionNode* parse_generate_intermediate_representation();
 
 /*
   NOTE:

@@ -1,58 +1,74 @@
-#include <iostream>
-#include <unordered_map>
 #include "parser.h"
 
-std::unordered_map<std::string, int> var_index;
+#include <iostream>
+#include <unordered_map>
+int list_count = 0;
+// int brace_count = 0;
 InstructionNode* head = nullptr;
-InstructionNode* previous;
+std::vector<insrct_list_node*> test_list;  // debugging fun
+std::unordered_map<std::string, int> var_index;
 
+void Parser::debug() {
+    std::cout << "size: " << test_list.size() << std::endl;
+    for (int i = 0; i < test_list.size(); i++) {
+        std::cout << "type " << test_list.at(i)->node->type;
+        std::cout << " num: " << test_list.at(i)->num << " ["
+                  << test_list.at(i)->debug << "] ";
+        if (test_list.at(i)->target != -1) {
+            std::cout << " --> " << test_list.at(i)->target << " ["
+                      << test_list.at(test_list.at(i)->target)->debug << "]";
+        }
+        std::cout << std::endl;
+    }
+}
 struct InstructionNode* parse_generate_intermediate_representation() {
     Parser parser;
     parser.parse_program();
-    return head;
+    std::vector<insrct_list_node*> cjmps;
+    //add NOOP
+    test_list.push_back(new insrct_list_node(test_list.size(), "NOOP", new InstructionNode));
+    test_list.at(test_list.size() - 1)->node->type = NOOP;
+    test_list.at(test_list.size() - 1)->node->next = NULL;
+
+    for (int i = 0; i < test_list.size() - 1; i++) {
+        test_list.at(i)->node->next = test_list.at(i + 1)->node;
+        if (test_list.at(i)->node->type == CJMP) {
+            test_list.at(i)->node->cjmp_inst.target = test_list.at(test_list.at(i)->target)->node;
+        }
+    }
+    //parser.debug();
+    return test_list.at(0)->node;
 }
 void Parser::parse_program() {
-    //std::cout << "PROGRAM" << std::endl;
     parse_var_section();
     parse_body();
     parse_inputs();
-    //expect(END_OF_FILE);
-    //std::cout << "DONE" << std::endl;
 }
 void Parser::parse_var_section() {
-    //std::cout << "VAR SECTION" << std::endl;
     parse_id_list();
     expect(SEMICOLON);
 }
 void Parser::parse_id_list() {
-    //std::cout << "ID LIST" << std::endl;
-    Token t = expect(ID);
-    
-    var_index[t.lexeme] = next_available;
+    var_index[expect(ID).lexeme] = next_available;
     mem[next_available] = 0;
     next_available++;
-    
-    //std::cout << "umap[" << t.lexeme << "] = " << umap[t.lexeme] << std::endl;
     if (lexer.peek(1).token_type == COMMA) {
         expect(COMMA);
         parse_id_list();
     }
 }
 void Parser::parse_body() {
-    //std::cout << "BODY" << std::endl;
     expect(LBRACE);
     parse_stmt_list();
     expect(RBRACE);
 }
 void Parser::parse_stmt_list() {
-    //std::cout << "STMT LIST" << std::endl;
     parse_stmt();
     if (lexer.peek(1).token_type != RBRACE) {
         parse_stmt_list();
     }
 }
 void Parser::parse_stmt() {
-    //std::cout << "STMT" << std::endl;
     switch (lexer.peek(1).token_type) {
         case ID:
             parse_assign_stmt();
@@ -80,44 +96,84 @@ void Parser::parse_stmt() {
     }
 }
 void Parser::parse_assign_stmt() {
-    //std::cout << "ASSIGN" << std::endl;
-    InstructionNode* a = new InstructionNode;
-    if(head == nullptr) {
-        head = a;
-    } else {
-        previous->next = a;
-    }
-    a->type = ASSIGN;
-    a->assign_inst.left_hand_side_index = var_index[expect(ID).lexeme];
+    InstructionNode* n = new InstructionNode;
+    std::string debug, temp;
+    n->type = ASSIGN;
+    temp = expect(ID).lexeme;
+    n->assign_inst.left_hand_side_index = var_index[temp];
+    debug += temp;
     expect(EQUAL);
-    if (lexer.peek(2).token_type != SEMICOLON) {
-        //parse_expr();
-        a->assign_inst.operand1_index = var_index[parse_primary().lexeme];
-        a->assign_inst.op = (ArithmeticOperatorType) parse_op();
-        a->assign_inst.operand2_index = var_index[parse_primary().lexeme];
-    } else {
-        a->assign_inst.op = OPERATOR_NONE;
-        a->assign_inst.operand1_index = var_index[parse_primary().lexeme];
+    debug += " = ";
+    switch (lexer.peek(2).token_type) {
+        case SEMICOLON:
+            n->assign_inst.op = OPERATOR_NONE;
+            temp = parse_primary().lexeme;
+            n->assign_inst.operand1_index = var_index[temp];
+            debug += temp;
+            break;
+        default:
+            temp = parse_primary().lexeme;
+            n->assign_inst.operand1_index = var_index[temp];
+            debug += temp;
+            int t = parse_op();
+            switch (t) {
+                case 124:
+                    debug += " + ";
+                    break;
+                case 125:
+                    debug += " - ";
+                    break;
+                case 126:
+                    debug += " * ";
+                    break;
+                case 127:
+                    debug += " / ";
+                    break;
+            }
+            n->assign_inst.op = (ArithmeticOperatorType)t;
+            temp = parse_primary().lexeme;
+            n->assign_inst.operand2_index = var_index[temp];
+            debug += temp;
     }
     expect(SEMICOLON);
-    previous = a;
+    test_list.push_back(new insrct_list_node(list_count++, debug, n));
+}
+void Parser::parse_output_stmt() {
+    InstructionNode* n = new InstructionNode;
+    std::string temp, debug;
+    n->type = OUT;
+    debug += expect(OUTPUT).lexeme;
+    temp = expect(ID).lexeme;
+    n->input_inst.var_index = var_index[temp];
+    expect(SEMICOLON);
+    debug += " " + temp;
+    test_list.push_back(new insrct_list_node(list_count++, debug, n));
+}
+void Parser::parse_input_stmt() {
+    InstructionNode* n = new InstructionNode;
+    std::string temp, debug;
+    n->type = IN;
+    debug += expect(INPUT).lexeme;
+    temp = expect(ID).lexeme;
+    n->input_inst.var_index = var_index[temp];
+    expect(SEMICOLON);
+    debug += " " + temp;
+    test_list.push_back(new insrct_list_node(list_count++, debug, n));
 }
 void Parser::parse_expr() {
-    std::cout << "EXPR" << std::endl;
-
+    // std::cout << "EXPR" << std::endl;
     parse_primary();
     parse_op();
     parse_primary();
 }
 Token Parser::parse_primary() {
-    //std::cout << "PRIMARY" << std::endl;
+    // std::cout << "PRIMARY" << std::endl;
     Token t;
     switch (lexer.peek(1).token_type) {
         case ID:
             return lexer.GetToken();
         case NUM:
             t = lexer.GetToken();
-            
             var_index[t.lexeme] = next_available;
             mem[next_available] = stoi(t.lexeme);
             next_available++;
@@ -127,7 +183,7 @@ Token Parser::parse_primary() {
     }
 }
 int Parser::parse_op() {
-    //std::cout << "OP" << std::endl;
+    // std::cout << "OP" << std::endl;
     switch (lexer.peek(1).token_type) {
         case PLUS:
             lexer.GetToken();
@@ -144,82 +200,79 @@ int Parser::parse_op() {
         default:
             syntax_error();
     }
-}
-void Parser::parse_output_stmt() {
-    //std::cout << "OUTPUT" << std::endl;
-    InstructionNode* o = new InstructionNode;
-    if(head == nullptr) {
-        head = o;
-    } else {
-        previous->next = o;
-    }
-    o->type = OUT;
-    expect(OUTPUT);
-    o->input_inst.var_index = var_index[expect(ID).lexeme];
-    expect(SEMICOLON);
-    previous = o;
-}
-void Parser::parse_input_stmt() {
-    //std::cout << "INPUT" << std::endl;
-    InstructionNode* i = new InstructionNode;
-     if(head == nullptr) {
-        head = i;
-    } else {
-        previous->next = i;
-    }
-    i->type = IN;
-    expect(INPUT);
-    i->input_inst.var_index = var_index[expect(ID).lexeme];
-    expect(SEMICOLON);
-    previous = i;
+    return -1;
 }
 void Parser::parse_while_stmt() {
-    //std::cout << "WHILE" << std::endl;
+    // std::cout << "WHILE" << std::endl;
     expect(WHILE);
     parse_condidtion();
     parse_body();
 }
 void Parser::parse_if_stmt() {
-    //std::cout << "IF" << std::endl;
-    expect(IF);
-    parse_condidtion();
+    InstructionNode* n = new InstructionNode;
+    std::string debug, temp;
+    n->type = CJMP;
+    debug += expect(IF).lexeme + " ";
+    temp = parse_primary().lexeme;
+    n->cjmp_inst.operand1_index = var_index[temp];
+    debug += temp;
+    int t = parse_relop();
+    switch (t) {
+        case 345:
+            debug += " > ";
+            break;
+        case 346:
+            debug += " < ";
+            break;
+        case 347:
+            debug += " != ";
+            break;
+    }
+    n->cjmp_inst.condition_op = (ConditionalOperatorType)t;
+    temp = parse_primary().lexeme;
+    n->cjmp_inst.operand2_index = var_index[temp];
+    debug += temp;
+    test_list.push_back(new insrct_list_node(list_count++, debug, n));
+    t = test_list.size() - 1;
     parse_body();
+    test_list.at(t)->target = list_count;
 }
 void Parser::parse_condidtion() {
-    //std::cout << "CONDITION" << std::endl;
+    // std::cout << "CONDITION" << std::endl;
     parse_primary();
     parse_relop();
     parse_primary();
 }
-void Parser::parse_relop() {
-    //std::cout << "RELOP" << std::endl;
-    switch(lexer.peek(1).token_type) {
+int Parser::parse_relop() {
+    // std::cout << "RELOP" << std::endl;
+    switch (lexer.peek(1).token_type) {
         case GREATER:
             lexer.GetToken();
-            break;
+            return 345;
         case LESS:
             lexer.GetToken();
-            break;
+            return 346;
         case NOTEQUAL:
             lexer.GetToken();
-            break;
+            return 347;
         default:
             syntax_error();
     }
+    return -1;
 }
 void Parser::parse_switch_stmt() {
-    //std::cout << "SWITCH" << std::endl;
+    // std::cout << "SWITCH" << std::endl;
     expect(SWITCH);
     expect(ID);
     expect(LBRACE);
     parse_case_list();
-    if(lexer.peek(1).token_type == DEFAULT) {
+    if (lexer.peek(1).token_type == DEFAULT) {
         parse_defualt_case();
     }
     expect(RBRACE);
 }
 void Parser::parse_for_stmt() {
-    //std::cout << "FOR" << std::endl;
+    // std::cout << "FOR" << std::endl;
     expect(FOR);
     expect(LPAREN);
     parse_assign_stmt();
@@ -230,34 +283,34 @@ void Parser::parse_for_stmt() {
     parse_body();
 }
 void Parser::parse_case_list() {
-    //std::cout << "CASE LIST" << std::endl;
+    // std::cout << "CASE LIST" << std::endl;
     parse_case();
-    if(lexer.peek(1).token_type == CASE) {
+    if (lexer.peek(1).token_type == CASE) {
         parse_case_list();
     }
 }
 void Parser::parse_case() {
-    //std::cout << "CASE" << std::endl;
+    // std::cout << "CASE" << std::endl;
     expect(CASE);
     expect(NUM);
     expect(COLON);
     parse_body();
 }
 void Parser::parse_defualt_case() {
-    //std::cout << "DEFUALT" << std::endl;
+    // std::cout << "DEFUALT" << std::endl;
     expect(DEFAULT);
     expect(COLON);
     parse_body();
 }
 void Parser::parse_inputs() {
-    //std::cout << "INPUTS" << std::endl;
+    // std::cout << "INPUTS" << std::endl;
     parse_num_list();
 }
 void Parser::parse_num_list() {
-    //std::cout << "NUM LIST" << std::endl;
+    // std::cout << "NUM LIST" << std::endl;
     Token t = expect(NUM);
     inputs.push_back(stoi(t.lexeme));
-    if(lexer.peek(1).token_type == NUM) {
+    if (lexer.peek(1).token_type == NUM) {
         parse_num_list();
     }
 }

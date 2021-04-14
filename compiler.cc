@@ -4,7 +4,6 @@
  * Do not share this file with anyone
  */
 #include "compiler.h"
-
 #include <cctype>
 #include <cstdarg>
 #include <cstdio>
