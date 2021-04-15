@@ -1,7 +1,6 @@
 a,b,c;
 {
 	a = 1;
-	output a;
 	SWITCH a {
 		CASE 0 : {
 			b = 5;

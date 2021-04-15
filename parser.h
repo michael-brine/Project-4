@@ -4,7 +4,7 @@
 #include "lexer.h"
 
 struct insrct_list_node {
-    int num, target, goto_flag;
+    int num, target, goto_flag, case_target, case_next;
     std::string debug;
     struct InstructionNode* node;
     insrct_list_node(int n, int g, std::string d, InstructionNode* in_node) {
@@ -13,6 +13,8 @@ struct insrct_list_node {
         debug = d;
         node = in_node;
         target = -1;
+        case_target = -1;
+        case_next = -1;
     }
 };
 class Parser {
@@ -37,10 +39,10 @@ class Parser {
     void parse_if_stmt();
     void parse_condidtion();
     int parse_relop();
-    void parse_switch_stmt();
     void parse_for_stmt();
-    void parse_case_list();
-    void parse_case();
+    void parse_switch_stmt();
+    void parse_case_list(std::string d, int op1_index);
+    void parse_case(std::string d, int op1_index);
     void parse_defualt_case();
     void parse_inputs();
     void parse_num_list();
